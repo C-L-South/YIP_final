@@ -98,7 +98,9 @@ async function detectPose() {
       const offsetY = (canvas.height - video.videoHeight * scale) / 2;
 
       const now = Date.now();
-
+      window.AppInventor.setWebViewString(
+          now
+      );
       // Check whether all points are visible
       const allPointsVisible = keypoints.every(kp => kp.score > 0.3);
 
