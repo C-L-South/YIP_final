@@ -199,7 +199,6 @@ async function detectPose() {
             dt,
             cfg
         );
-        console.log(count);
         if (window.AppInventor) {
         window.AppInventor.setWebViewString(`${count} ${fast_Slow_Wrn}`);
         }
@@ -217,9 +216,7 @@ async function startCamera(type) {
     if (running) return;
     try {
     const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-            backgroundBlur: true
-        },
+        video: true,
         audio: false
     });
     streamRef = stream;
