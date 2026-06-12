@@ -5,8 +5,8 @@ export function getExeCfg(caseId) {
     case 1: // squat
       return {
         ang_idx: [16, 13],
-        template: [145, 30, 145, 30].map(x => x * DTOR),
-        score_lim: [0.05, 0.1, 0.2],
+        template: [130, 35, 130, 35].map(x => x * DTOR),
+        score_lim: [0.1, 0.15, 0.2],
 
         tau: 0.4,
         highThresh: 20,
