@@ -11,7 +11,7 @@ let startDirection;
 let prevAngle;
 let fastSlowWarningP;
 let angleDiff;
-let fastSlowWarning_time;
+let fastSlowWarningTime;
  export function countExerciseRep2(curTime, angle, reset, dt, cfg) {
     const alpha = dt / (dt + cfg.tau);
     
@@ -38,7 +38,7 @@ let fastSlowWarning_time;
       lowTime = NaN;
       startDirection = 0;
       prevAngle = angle;
-      fastSlowWarning_time = -1;
+      fastSlowWarningTime = -1;
       return {
         count: countP,
         state: stateP,
@@ -99,13 +99,13 @@ let fastSlowWarning_time;
 
             if (repPeriod >= maxPeriodWrn) {
               fastSlowWarningP = 2; // too slow
-              fastSlowWarning_time = curTime;
+              fastSlowWarningTime = curTime;
             } else if (repPeriod <= minPeriodWrn) {
               fastSlowWarningP = 1; // too fast
-              fastSlowWarning_time = curTime;
+              fastSlowWarningTime = curTime;
             } else {
               fastSlowWarningP = 0; // okay
-              fastSlowWarning_time = -1;
+              fastSlowWarningTime = -1;
             }
           }
 
@@ -137,13 +137,13 @@ let fastSlowWarning_time;
 
             if (repPeriod >= maxPeriodWrn) {
               fastSlowWarningP = 2; // too slow
-              fastSlowWarning_time = curTime;
+              fastSlowWarningTime = curTime;
             } else if (repPeriod <= minPeriodWrn) {
               fastSlowWarningP = 1; // too fast
-              fastSlowWarning_time = curTime;
+              fastSlowWarningTime = curTime;
             } else {
               fastSlowWarningP = 0; // okay
-              fastSlowWarning_time = -1;
+              fastSlowWarningTime = -1;
             }
           }
 
@@ -156,11 +156,11 @@ let fastSlowWarning_time;
   
     if (
         fastSlowWarningP !== 0 &&
-        fastSlowWarning_time !== -1 &&
-        (curTime - fastSlowWarning_time) > 1.0
+        fastSlowWarningTime !== -1 &&
+        (curTime - fastSlowWarningTime) > 1.0
     ) {
-        fastSlowWarning_p = 0;
-        fastSlowWarning_time = -1;
+        fastSlowWarningP = 0;
+        fastSlowWarningTime = -1;
     }
   
     prevAngle = angle;
