@@ -20,7 +20,9 @@ let running = false;
 let cfg;
 let dt = 0;
 let prevTime = null;
-
+function testFromApp() {
+  AppInventor.setWebViewString("external JS loaded");
+}
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
