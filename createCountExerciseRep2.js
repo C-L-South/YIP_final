@@ -11,7 +11,7 @@ let startDirection;
 let prevAngle;
 let fastSlowWarningP;
 let angleDiff;
-
+let fastSlowWarning_time;
  export function countExerciseRep2(curTime, angle, reset, dt, cfg) {
     const alpha = dt / (dt + cfg.tau);
     
@@ -38,7 +38,7 @@ let angleDiff;
       lowTime = NaN;
       startDirection = 0;
       prevAngle = angle;
-
+      fastSlowWarning_time = -1;
       return {
         count: countP,
         state: stateP,
@@ -99,10 +99,13 @@ let angleDiff;
 
             if (repPeriod >= maxPeriodWrn) {
               fastSlowWarningP = 2; // too slow
+              fastSlowWarning_time = curTime;
             } else if (repPeriod <= minPeriodWrn) {
               fastSlowWarningP = 1; // too fast
+              fastSlowWarning_time = curTime;
             } else {
               fastSlowWarningP = 0; // okay
+              fastSlowWarning_time = -1;
             }
           }
 
@@ -134,10 +137,13 @@ let angleDiff;
 
             if (repPeriod >= maxPeriodWrn) {
               fastSlowWarningP = 2; // too slow
+              fastSlowWarning_time = curTime;
             } else if (repPeriod <= minPeriodWrn) {
               fastSlowWarningP = 1; // too fast
+              fastSlowWarning_time = curTime;
             } else {
               fastSlowWarningP = 0; // okay
+              fastSlowWarning_time = -1;
             }
           }
 
@@ -147,7 +153,16 @@ let angleDiff;
         }
         break;
     }
-
+  
+    if (
+        fastSlowWarningP !== 0 &&
+        fastSlowWarning_time !== -1 &&
+        (curTime - fastSlowWarning_time) > 1.0
+    ) {
+        fastSlowWarning_p = 0;
+        fastSlowWarning_time = -1;
+    }
+  
     prevAngle = angle;
 
     return {
