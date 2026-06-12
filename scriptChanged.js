@@ -99,7 +99,7 @@ async function detectPose() {
 
       const now = Date.now();
       window.AppInventor.setWebViewString(
-          now
+          performance.now().toString()
       );
       // Check whether all points are visible
       const allPointsVisible = keypoints.every(kp => kp.score > 0.3);
