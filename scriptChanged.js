@@ -2,6 +2,7 @@ import { formatPoints } from "./formatPoints.js";
 import { getExeCfg } from "./getExeCfg.js"
 import { getAllAngles } from "./getAllAngles.js"
 import { countExerciseRep2 } from "./createCountExerciseRep2.js"
+import { similarityToScore } from "./similarityToScore.js"
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -177,13 +178,7 @@ async function detectPose() {
         const bestError = 0.01;
         const worstError = 0.3113;
 
-        const accuracyScore = Math.max(
-        0,
-        Math.min(
-            100,
-            ((worstError - similarity) / (worstError - bestError)) * 100
-        )
-        );
+        const accuracyScore = 100 * similarityToScore(similarity, cfg);
         totalAccuracy += accuracyScore;
         accuracyFrames++;
         const bar = document.getElementById("similarityBar");
