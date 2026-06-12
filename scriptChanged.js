@@ -20,9 +20,6 @@ let running = false;
 let cfg;
 let dt = 0;
 let prevTime = null;
-function testFromApp() {
-  AppInventor.setWebViewString("external JS loaded");
-}
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -293,7 +290,5 @@ function stopCamera() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
-startCamera("Squat");
-window.testFromApp = testFromApp;
 window.startCamera = startCamera;
 window.stopCamera = stopCamera;
