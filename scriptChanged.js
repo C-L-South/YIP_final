@@ -294,3 +294,6 @@ function stopCamera() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 startCamera("Squat");
+window.testFromApp = testFromApp;
+window.startCamera = startCamera;
+window.stopCamera = stopCamera;
