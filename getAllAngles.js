@@ -25,8 +25,8 @@ let prvAngs = [
 let prvX = [...prvAngs];
 let prvX2 = prvAngs.map(a => a * a);
 
-export function getAllAngles(currAllPts, dt) {
-    const tau = 2;
+export function getAllAngles(currAllPts, dt, tau) {
+    
     const alpha = tau / (dt + tau);
 
     const dataStrct = {
