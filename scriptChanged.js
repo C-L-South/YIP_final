@@ -148,7 +148,7 @@ async function detectPose() {
         if (prevTime !== null) {
         dt = timeStamp - prevTime;
         }
-        const dataStruct = getAllAngles(row, dt);
+        const dataStruct = getAllAngles(row, dt, cfg.win_len );
         const featureVect = [];
 
         function norm(arr) {
