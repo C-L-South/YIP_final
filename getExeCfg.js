@@ -6,7 +6,8 @@ export function getExeCfg(caseId) {
       return {
         ang_idx: [16, 13],
         template: [130, 35, 130, 35].map(x => x * DTOR),
-        score_lim: [0.1, 0.15, 0.2],
+        score_lim: [0.15, 0.2, 0.25],
+        win_len: 4,
 
         tau: 0.4,
         highThresh: 20,
@@ -26,6 +27,7 @@ export function getExeCfg(caseId) {
         ang_idx: [12, 9],
         template: [160, 15, 160, 15].map(x => x * DTOR),
         score_lim: [0.05, 0.1, 0.2],
+        win_len: 2, 
 
         tau: 0.4,
         highThresh: 20,
@@ -45,6 +47,7 @@ export function getExeCfg(caseId) {
         ang_idx: [13, 18],
         template: [135, 30, 40, 15].map(x => x * DTOR),
         score_lim: [0.15, 0.25, 0.4],
+        win_len: 2, 
 
         tau: 0.4,
         highThresh: 55,
@@ -64,6 +67,7 @@ export function getExeCfg(caseId) {
         ang_idx: [8, 12],
         template: [150, 0, 30, 0].map(x => x * DTOR),
         score_lim: [0.1, 0.2, 0.3],
+        win_len: 0.2, 
 
         tau: 0.4,
         highThresh: 5,
