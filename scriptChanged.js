@@ -192,12 +192,25 @@ async function detectPose() {
             bar.style.background = "red";
         }
 
-        const {count,state,angle_Diff_Filt,fast_Slow_Wrn} = countExerciseRep2(
-            timeStamp,
-            dataStruct.ang[cfg.ang_idx[0] - 1] * 180/Math.PI,
-            0,
-            dt,
-            cfg
+        const angIn =
+        0.5 *
+        (
+            dataStruct.ang[cfg.ang_idx[0] - 1] +
+            dataStruct.ang[cfg.ang_idx[1] - 1]
+        ) *
+        180 / Math.PI;
+
+        const {
+        count,
+        state,
+        angle_Diff_Filt,
+        fast_Slow_Wrn
+        } = countExerciseRep2(
+        timeStamp,
+        angIn,
+        0,
+        dt,
+        cfg
         );
         if (window.AppInventor) {
         window.AppInventor.setWebViewString(`${count} ${fast_Slow_Wrn}`);
@@ -238,6 +251,18 @@ async function startCamera(type) {
         cfg = getExeCfg(3);
     } else if (type === "Child") {
         cfg = getExeCfg(4);
+    } else if (type === "Arm Circle") {
+        cfg = getExeCfg(5);
+    } else if (type === "Butterfly Stretch") {
+        cfg = getExeCfg(6);
+    } else if (type === "Cobra Stretch") {
+        cfg = getExeCfg(7);
+    } else if (type === "Shoulder Flexion Raise") {
+        cfg = getExeCfg(8);
+    } else if (type === "Standing Hamstring Curl") {
+        cfg = getExeCfg(9);
+    } else if (type === "Standing March") {
+        cfg = getExeCfg(10);
     } else {
         throw new Error(`Unknown exercise type: ${type}`);
     }
