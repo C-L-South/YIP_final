@@ -251,17 +251,17 @@ async function startCamera(type) {
         cfg = getExeCfg(3);
     } else if (type === "Child") {
         cfg = getExeCfg(4);
-    } else if (type === "Arm Circle") {
+    } else if (type === "Circle") {
         cfg = getExeCfg(5);
-    } else if (type === "Butterfly Stretch") {
+    } else if (type === "Butterfly") {
         cfg = getExeCfg(6);
-    } else if (type === "Cobra Stretch") {
+    } else if (type === "Cobra") {
         cfg = getExeCfg(7);
-    } else if (type === "Shoulder Flexion Raise") {
+    } else if (type === "Raise") {
         cfg = getExeCfg(8);
-    } else if (type === "Standing Hamstring Curl") {
+    } else if (type === "Curl") {
         cfg = getExeCfg(9);
-    } else if (type === "Standing March") {
+    } else if (type === "March") {
         cfg = getExeCfg(10);
     } else {
         throw new Error(`Unknown exercise type: ${type}`);
