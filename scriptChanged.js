@@ -136,6 +136,7 @@ async function detectPose() {
       }
         if (window.AppInventor && startSignal==false) {
           window.AppInventor.setWebViewString("Movenet Starting");
+          video.classList.remove("blurred");
           startSignal=true;
         }
         drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor);
@@ -228,6 +229,7 @@ async function detectPose() {
 async function startCamera(type) {
     if (running) return;
     try {
+    video.classList.add("blurred");
     const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: false
