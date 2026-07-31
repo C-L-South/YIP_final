@@ -18,7 +18,7 @@ let animationId = null;
 let streamRef = null;
 let running = false;
 
-const LOGIC_DELAY_MS = 5000;
+const LOGIC_DELAY_MS = 6000;
 let exerciseStartTime = null;
 
 let cfg;
