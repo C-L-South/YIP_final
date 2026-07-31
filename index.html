@@ -95,7 +95,13 @@
 .marker66 {
   left: 66.66%;
 }
+#video {
+    transition: filter 0.3s ease;
+}
 
+#video.blurred {
+    filter: blur(8px);
+}
 </style>
   <div id="stage">
     <video id="video" autoplay playsinline muted></video>
