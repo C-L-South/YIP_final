@@ -18,6 +18,9 @@ let animationId = null;
 let streamRef = null;
 let running = false;
 
+const LOGIC_DELAY_MS = 5000;
+let exerciseStartTime = null;
+
 let cfg;
 let dt = 0;
 let prevTime = null;
@@ -134,14 +137,26 @@ async function detectPose() {
           missingBodySince = null;
           alertSent = false;
       }
-        if (window.AppInventor && startSignal==false) {
-          window.AppInventor.setWebViewString("Movenet Starting");
-          video.classList.remove("blurred");
-          startSignal=true;
+        if (!startSignal) {
+            if (window.AppInventor) {
+                window.AppInventor.setWebViewString("Movenet Starting");
+            }
+        
+            video.classList.remove("blurred");
+            startSignal = true;
+            exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
         }
         drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor);
         drawKeypoints(keypoints, scale, offsetX, offsetY, warningColor);
 
+        const logicDelayFinished =
+            exerciseStartTime !== null &&
+            Date.now() >= exerciseStartTime;
+        
+        if (!logicDelayFinished) {
+            animationId = requestAnimationFrame(detectPose);
+            return;
+        }
         //compute
         const row = formatPoints(poses[0]);
         const template = cfg.template;
