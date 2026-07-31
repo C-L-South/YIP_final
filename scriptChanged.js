@@ -98,36 +98,26 @@ async function detectPose() {
       const offsetY = (canvas.height - video.videoHeight * scale) / 2;
 
       const now = Date.now();
-      let playStartSent = false;
-    
+      // Check whether all points are visible
       const allPointsVisible = keypoints.every(kp => kp.score > 0.3);
-    
+
       // If all points visible, update last good pose time
       if (allPointsVisible) {
           lastGoodPoseTime = now;
       }
-    
+
       // Allow brief tracking losses (500 ms)
       const poseRecentlyGood = (now - lastGoodPoseTime) < 500;
-    
-      // Fire when body becomes visible after being absent
-      if (poseRecentlyGood && !playStartSent && window.AppInventor) {
-          playStartSent = true;
-          window.AppInventor.setWebViewString("playstart");
-      }
-    
+
       // Only show warning color if body has been missing longer than grace period
       const warningColor = poseRecentlyGood ? null : "orange";
-    
+
       if (!poseRecentlyGood) {
-    
-          // Allow playstart to fire again once the user returns
-          playStartSent = false;
-    
+
           if (missingBodySince === null) {
               missingBodySince = now;
           }
-    
+
           if (
               !alertSent &&
               now - missingBodySince >= 2000 &&
@@ -138,9 +128,9 @@ async function detectPose() {
                   "Please move your body so it is visible in the camera."
               );
           }
-    
+
       } else {
-      
+
           missingBodySince = null;
           alertSent = false;
       }
