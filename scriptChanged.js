@@ -17,6 +17,7 @@ let detector = null;
 let animationId = null;
 let streamRef = null;
 let running = false;
+let lastGoodPoseTime = Date.now();
 
 const LOGIC_DELAY_MS = 6000;
 let exerciseStartTime = null;
