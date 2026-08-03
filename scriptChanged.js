@@ -92,8 +92,6 @@ async function detectPose() {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
-
-        
         const keypoints = poses[0].keypoints || [];
       
         //visibility logic
@@ -112,7 +110,7 @@ async function detectPose() {
         }
         
         //starting logic
-        if (!startSignal) {
+        if (!startSignal && allPointsVisible) {
             if (window.AppInventor) {
                 window.AppInventor.setWebViewString("Movenet Starting");
             }
