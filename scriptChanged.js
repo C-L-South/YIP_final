@@ -87,18 +87,14 @@ async function setupDetector() {
 async function detectPose() {
     if (!running) return;
     try {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const poses = await detector.estimatePoses(video);
+        if (poses.length === 0) {
+            animationId = requestAnimationFrame(detectPose);
+            return;
+        }
 
-    const poses = await detector.estimatePoses(video);
-  if (poses.length > 0) {
-        const keypoints = poses[0].keypoints || [];
         
-        const scaleX = canvas.width / video.videoWidth;
-        const scaleY = canvas.height / video.videoHeight;
-        const scale = Math.max(scaleX, scaleY);
-        const offsetX = (canvas.width  - video.videoWidth  * scale) / 2;
-        const offsetY = (canvas.height - video.videoHeight * scale) / 2;
-
+        const keypoints = poses[0].keypoints || [];
       
         //visibility logic
         const now = Date.now();
@@ -114,19 +110,25 @@ async function detectPose() {
             alertSent = true;
             window.AppInventor.setWebViewString("Please move your body so it is visible in the camera.");
         }
-
-
-
-      
+        
+        //starting logic
         if (!startSignal) {
             if (window.AppInventor) {
                 window.AppInventor.setWebViewString("Movenet Starting");
             }
-        
             video.classList.remove("blurred");
             startSignal = true;
+            //delay
             exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
         }
+        
+        //drawing logic
+        const scaleX = canvas.width / video.videoWidth;
+        const scaleY = canvas.height / video.videoHeight;
+        const scale = Math.max(scaleX, scaleY);
+        const offsetX = (canvas.width  - video.videoWidth  * scale) / 2;
+        const offsetY = (canvas.height - video.videoHeight * scale) / 2;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor);
         drawKeypoints(keypoints, scale, offsetX, offsetY, warningColor);
 
@@ -213,7 +215,6 @@ async function detectPose() {
         window.AppInventor.setWebViewString(`${count} ${fast_Slow_Wrn}`);
         }
         prevTime = timeStamp;
-    }
 
     animationId = requestAnimationFrame(detectPose);
     } catch (error) {
