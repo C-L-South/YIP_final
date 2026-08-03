@@ -10,7 +10,6 @@ const ctx = canvas.getContext('2d');
 let totalAccuracy = 0;
 let accuracyFrames = 0;
 //for alerting
-let missingBodySince = null;
 let alertSent = false;
 let startSignal=false;
 let detector = null;
