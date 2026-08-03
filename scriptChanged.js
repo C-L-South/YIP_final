@@ -104,13 +104,6 @@ async function detectPose() {
             alertSent = true;
             window.AppInventor.setWebViewString("Please move your body so it is visible in the camera.");
         }
-
-        //do not do rest if pose is not visible
-        if (poses.length === 0) {
-            animationId = requestAnimationFrame(detectPose);
-            return;
-        }
-        
         //starting logic
         if (!startSignal) {
             if (window.AppInventor) {
@@ -118,6 +111,11 @@ async function detectPose() {
             }
             video.classList.remove("blurred");
             startSignal = true;
+        }
+        //do not do rest if pose is not visible
+        if (poses.length === 0) {
+            animationId = requestAnimationFrame(detectPose);
+            return;
         }
         //starting countdown
         if (startSignal && allPointsVisible) {
