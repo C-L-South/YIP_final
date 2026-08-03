@@ -85,7 +85,6 @@ async function setupDetector() {
     );
     return detector;
 }
-let lastGoodPoseTime = Date.now();
 async function detectPose() {
     if (!running) return;
     try {
