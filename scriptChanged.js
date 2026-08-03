@@ -87,12 +87,14 @@ async function setupDetector() {
 async function detectPose() {
     if (!running) return;
     try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         const poses = await detector.estimatePoses(video);
-        const keypoints = poses[0].keypoints || [];
+        const hasPose = poses.length > 0;
+        const keypoints = hasPose ? poses[0].keypoints : [];
       
         //visibility logic
         const now = Date.now();
-        const allPointsVisible = poses.length > 0 && poses[0].keypoints.every(kp => kp.score > 0.3);
+        const allPointsVisible = hasPose && keypoints.every(kp => kp.score > 0.3);
         if (allPointsVisible) {
             lastGoodPoseTime = now;
             alertSent = false;
@@ -113,12 +115,12 @@ async function detectPose() {
             startSignal = true;
         }
         //do not do rest if pose is not visible
-        if (poses.length === 0) {
+        if (!hasPose) {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
         //starting countdown
-        if (startSignal && allPointsVisible) {
+        if (startSignal && allPointsVisible && exerciseStartTime === null) {
             if (window.AppInventor) {
                 window.AppInventor.setWebViewString("Detection Starting");
             }
@@ -131,7 +133,6 @@ async function detectPose() {
         const scale = Math.max(scaleX, scaleY);
         const offsetX = (canvas.width  - video.videoWidth  * scale) / 2;
         const offsetY = (canvas.height - video.videoHeight * scale) / 2;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor);
         drawKeypoints(keypoints, scale, offsetX, offsetY, warningColor);
 
