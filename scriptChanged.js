@@ -88,15 +88,11 @@ async function detectPose() {
     if (!running) return;
     try {
         const poses = await detector.estimatePoses(video);
-        if (poses.length === 0) {
-            animationId = requestAnimationFrame(detectPose);
-            return;
-        }
         const keypoints = poses[0].keypoints || [];
       
         //visibility logic
         const now = Date.now();
-        const allPointsVisible = keypoints.every(kp => kp.score > 0.3);
+        const allPointsVisible = poses.length > 0 && poses[0].keypoints.every(kp => kp.score > 0.3);
         if (allPointsVisible) {
             lastGoodPoseTime = now;
             alertSent = false;
@@ -108,15 +104,26 @@ async function detectPose() {
             alertSent = true;
             window.AppInventor.setWebViewString("Please move your body so it is visible in the camera.");
         }
+
+        //do not do rest if pose is not visible
+        if (poses.length === 0) {
+            animationId = requestAnimationFrame(detectPose);
+            return;
+        }
         
         //starting logic
-        if (!startSignal && allPointsVisible) {
+        if (!startSignal) {
             if (window.AppInventor) {
-                window.AppInventor.setWebViewString("Movenet Starting");
+                window.AppInventor.setWebViewString("Movenet Loaded");
             }
             video.classList.remove("blurred");
             startSignal = true;
-            //delay
+        }
+        //starting countdown
+        if (startSignal && allPointsVisible) {
+            if (window.AppInventor) {
+                window.AppInventor.setWebViewString("Detection Starting");
+            }
             exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
         }
         
@@ -138,6 +145,8 @@ async function detectPose() {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
+
+        
         //compute
         const row = formatPoints(poses[0]);
         const template = cfg.template;
