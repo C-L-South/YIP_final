@@ -100,7 +100,6 @@ async function detectPose() {
             alertSent = false;
         }
         const missingDuration = now - lastGoodPoseTime;
-        console.log(missingDuration);
         const warningColor =
             missingDuration >= 500 ? "orange" : null;
         if (missingDuration >= 2000 && !alertSent && window.AppInventor) {
