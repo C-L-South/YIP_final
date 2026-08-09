@@ -316,4 +316,3 @@ function stopCamera() {
 }
 window.startCamera = startCamera;
 window.stopCamera = stopCamera;
-startCamera("Squat");
