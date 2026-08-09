@@ -206,21 +206,24 @@ async function detectPose() {
         180 / Math.PI;
 
         const {
-        count,
-        state,
-        angle_Diff_Filt,
-        fast_Slow_Wrn
+            count,
+            state,
+            angleFilt,
+            fastSlowWarning,
+            repPeriod
         } = countExerciseRep2(
-        timeStamp,
-        angIn,
-        0,
-        dt,
-        cfg
+            timeStamp,
+            angIn,
+            0,
+            dt,
+            cfg
         );
+        
         if (window.AppInventor) {
-        window.AppInventor.setWebViewString(`${count} ${fast_Slow_Wrn}`);
+            window.AppInventor.setWebViewString(
+                `${count} ${fastSlowWarning}`
+            );
         }
-        prevTime = timeStamp;
 
     animationId = requestAnimationFrame(detectPose);
     } catch (error) {
