@@ -224,7 +224,7 @@ async function detectPose() {
                 `${count} ${fastSlowWarning}`
             );
         }
-
+        prevTime = timeStamp;
     animationId = requestAnimationFrame(detectPose);
     } catch (error) {
     console.error(error);
