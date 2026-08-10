@@ -16,7 +16,7 @@ let detector = null;
 let animationId = null;
 let streamRef = null;
 let running = false;
-let lastGoodPoseTime = Date.now();
+let lastGoodPoseTime = null;
 
 const LOGIC_DELAY_MS = 6000;
 let exerciseStartTime = null;
@@ -94,6 +94,9 @@ async function detectPose() {
       
         //visibility logic
         const now = Date.now();
+        if (lastGoodPoseTime === null) {
+            lastGoodPoseTime = now;
+        }
         const allPointsVisible = hasPose && keypoints.every(kp => kp.score > 0.3);
         if (allPointsVisible) {
             lastGoodPoseTime = now;
