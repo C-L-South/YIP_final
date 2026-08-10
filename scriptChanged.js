@@ -119,12 +119,17 @@ async function detectPose() {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
-        //starting countdown
+        // starting countdown
         if (startSignal && allPointsVisible && exerciseStartTime === null) {
+            // Start missing-pose timer from when detection starts
+            lastGoodPoseTime = now;
+            alertSent = false;
+        
             if (window.AppInventor) {
                 window.AppInventor.setWebViewString("Detection Starting");
             }
-            exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
+        
+            exerciseStartTime = now + LOGIC_DELAY_MS;
         }
         
         //drawing logic
