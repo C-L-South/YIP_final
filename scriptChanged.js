@@ -103,7 +103,7 @@ async function detectPose() {
         console.log(missingDuration);
         const warningColor =
             missingDuration >= 500 ? "orange" : null;
-        if (missingDuration >= 2000 && !alertSent && window.AppInventor) {
+        if (missingDuration >= 2000 && !alertSent /*&& window.AppInventor*/) {
             alertSent = true;
             window.AppInventor.setWebViewString("Please move your body so it is visible in the camera.");
             console.log("Please move your body so it is visible in the camera.");
