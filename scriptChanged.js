@@ -16,7 +16,7 @@ let detector = null;
 let animationId = null;
 let streamRef = null;
 let running = false;
-let lastGoodPoseTime = Date.now();
+let lastGoodPoseTime = null;
 
 const LOGIC_DELAY_MS = 6000;
 let exerciseStartTime = null;
@@ -94,6 +94,9 @@ async function detectPose() {
       
         //visibility logic
         const now = Date.now();
+        if (lastGoodPoseTime === null) {
+            lastGoodPoseTime = now;
+        }
         const allPointsVisible = hasPose && keypoints.every(kp => kp.score > 0.3);
         if (allPointsVisible) {
             lastGoodPoseTime = now;
@@ -119,12 +122,17 @@ async function detectPose() {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
-        //starting countdown
+        // starting countdown
         if (startSignal && allPointsVisible && exerciseStartTime === null) {
+            // Start missing-pose timer from when detection starts
+            lastGoodPoseTime = now;
+            alertSent = false;
+        
             if (window.AppInventor) {
                 window.AppInventor.setWebViewString("Detection Starting");
             }
-            exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
+        
+            exerciseStartTime = now + LOGIC_DELAY_MS;
         }
         
         //drawing logic
@@ -206,22 +214,25 @@ async function detectPose() {
         180 / Math.PI;
 
         const {
-        count,
-        state,
-        angle_Diff_Filt,
-        fast_Slow_Wrn
+            count,
+            state,
+            angleFilt,
+            fastSlowWarning,
+            repPeriod
         } = countExerciseRep2(
-        timeStamp,
-        angIn,
-        0,
-        dt,
-        cfg
+            timeStamp,
+            angIn,
+            0,
+            dt,
+            cfg
         );
+        
         if (window.AppInventor) {
-        window.AppInventor.setWebViewString(`${count} ${fast_Slow_Wrn}`);
+            window.AppInventor.setWebViewString(
+                `${count} ${fastSlowWarning}`
+            );
         }
         prevTime = timeStamp;
-
     animationId = requestAnimationFrame(detectPose);
     } catch (error) {
     console.error(error);
