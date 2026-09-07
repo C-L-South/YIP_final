@@ -6,6 +6,16 @@ import { similarityToScore } from "./similarityToScore.js"
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+
+//angle to points mapping
+const angPtsIdx = [
+  [8, 2, 10], [12, 8, 2], [12, 8, 9], [12, 9, 8],
+  [12, 9, 3], [11, 3, 9], [2, 8, 4], [3, 9, 5],
+  [8, 4, 6], [8, 4, 5], [9, 5, 4], [9, 5, 7],
+  [4, 6, 0], [4, 6, 7], [5, 7, 6], [5, 7, 1],
+  [6, 0, 1], [7, 1, 0]
+];
+
 //accuracy 
 let totalAccuracy = 0;
 let accuracyFrames = 0;
@@ -97,7 +107,13 @@ async function detectPose() {
         if (lastGoodPoseTime === null) {
             lastGoodPoseTime = now;
         }
-        const allPointsVisible = hasPose && keypoints.every(kp => kp.score > 0.3);
+        
+        const requiredPoints = cfg.ang_idx.flatMap(i => angPtsIdx[i - 1]);
+        
+        const allPointsVisible =
+            hasPose &&
+            requiredPoints.every(i => keypoints[i]?.score > 0.3);
+        
         if (allPointsVisible) {
             lastGoodPoseTime = now;
             alertSent = false;
