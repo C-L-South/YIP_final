@@ -108,11 +108,15 @@ async function detectPose() {
             lastGoodPoseTime = now;
         }
         
+        // formatPoints uses the same 13-point order as angPtsIdx.
+        const row = hasPose ? formatPoints(poses[0]) : null;
         const requiredPoints = cfg.ang_idx.flatMap(i => angPtsIdx[i - 1]);
         
         const allPointsVisible =
             hasPose &&
-            requiredPoints.every(i => keypoints[i]?.score > 0.3);
+            requiredPoints.every(i =>
+                row[1 + 2 * i] >= 0 && row[2 + 2 * i] >= 0
+            );
         
         if (allPointsVisible) {
             lastGoodPoseTime = now;
@@ -171,7 +175,6 @@ async function detectPose() {
 
         
         //compute
-        const row = formatPoints(poses[0]);
         const template = cfg.template;
         const timeStamp = row[0] / 1000;
         if (prevTime !== null) {
