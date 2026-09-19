@@ -21,7 +21,12 @@ let totalAccuracy = 0;
 let accuracyFrames = 0;
 //for alerting
 let alertSent = false;
-let startSignal=false;
+let ready = false;
+let startRequested = false;
+let initializationPromise = null;
+let detectorPromise = null;
+let sessionId = 0;
+let cancelMetadataWait = null;
 let detector = null;
 let animationId = null;
 let streamRef = null;
@@ -87,18 +92,25 @@ function drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor) {
 
 async function setupDetector() {
     if (detector) return detector;
-    await tf.ready();
-    detector = await poseDetection.createDetector(
-    poseDetection.SupportedModels.MoveNet,
-    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER }
-    );
-    return detector;
+    if (!detectorPromise) {
+        detectorPromise = (async () => {
+            await tf.ready();
+            detector = await poseDetection.createDetector(
+                poseDetection.SupportedModels.MoveNet,
+                { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER }
+            );
+            return detector;
+        })().finally(() => { detectorPromise = null; });
+    }
+    return detectorPromise;
 }
 async function detectPose() {
     if (!running) return;
+    const currentSession = sessionId;
     try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const poses = await detector.estimatePoses(video);
+        if (!running || currentSession !== sessionId) return;
         const hasPose = poses.length > 0;
         const keypoints = hasPose ? poses[0].keypoints : [];
       
@@ -129,21 +141,13 @@ async function detectPose() {
             alertSent = true;
             window.AppInventor.setWebViewString("Please move your body so it is visible in the camera.");
         }
-        //starting logic
-        if (!startSignal) {
-            if (window.AppInventor) {
-                window.AppInventor.setWebViewString("Movenet Loaded");
-            }
-            video.classList.remove("blurred");
-            startSignal = true;
-        }
         //do not do rest if pose is not visible
         if (!hasPose) {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
         // starting countdown
-        if (startSignal && allPointsVisible && exerciseStartTime === null) {
+        if (allPointsVisible && exerciseStartTime === null) {
             // Start missing-pose timer from when detection starts
             lastGoodPoseTime = now;
             alertSent = false;
@@ -254,63 +258,125 @@ async function detectPose() {
         prevTime = timeStamp;
     animationId = requestAnimationFrame(detectPose);
     } catch (error) {
+    if (currentSession !== sessionId) return;
     console.error(error);
     stopCamera();
     }
 }
 
-async function startCamera(type) {
-    if (running) return;
-    try {
+// Prepare the camera and model without starting pose inference or exercise timers.
+function startCamera(type) {
+    if (initializationPromise) return initializationPromise;
+    if (ready || running) return Promise.resolve(true);
+    const currentSession = ++sessionId;
     video.classList.add("blurred");
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
+    initializationPromise = (async () => {
+        try {
+            if (type === "Squat") {
+                cfg = getExeCfg(1);
+            } else if (type === "Bend") {
+                cfg = getExeCfg(2);
+            } else if (type === "Lunge") {
+                cfg = getExeCfg(3);
+            } else if (type === "Child") {
+                cfg = getExeCfg(4);
+            } else if (type === "Circle") {
+                cfg = getExeCfg(5);
+            } else if (type === "Butterfly") {
+                cfg = getExeCfg(6);
+            } else if (type === "Cobra") {
+                cfg = getExeCfg(7);
+            } else if (type === "Raise") {
+                cfg = getExeCfg(8);
+            } else if (type === "Curl") {
+                cfg = getExeCfg(9);
+            } else if (type === "March") {
+                cfg = getExeCfg(10);
+            } else {
+                throw new Error(`Unknown exercise type: ${type}`);
+            }
+
+            totalAccuracy = 0;
+            accuracyFrames = 0;
+            exerciseStartTime = null;
+            lastGoodPoseTime = null;
+            alertSent = false;
+            prevTime = null;
+            dt = 0;
+            document.getElementById("similarityBar").style.width = "0%";
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+            if (currentSession !== sessionId) {
+                stream.getTracks().forEach(t => t.stop());
+                return false;
+            }
+            streamRef = stream;
+            await new Promise((resolve) => {
+                const finish = () => {
+                    video.onloadedmetadata = null;
+                    cancelMetadataWait = null;
+                    resolve();
+                };
+                cancelMetadataWait = finish;
+                video.onloadedmetadata = finish;
+                video.srcObject = stream;
+                if (video.readyState >= 1) finish();
+            });
+            if (currentSession !== sessionId) return false;
+            await video.play();
+            if (currentSession !== sessionId) return false;
+            video.style.display = "block";
+            canvas.style.display = "block";
+            resizeCanvas();
+            await setupDetector();
+            if (currentSession !== sessionId) return false;
+
+            ready = true;
+            if (window.AppInventor) {
+                window.AppInventor.setWebViewString("Movenet Loaded");
+            }
+            beginDetectionIfReady();
+            return true;
+        } catch (error) {
+            if (currentSession === sessionId) {
+                console.error(error);
+                stopCamera();
+            }
+            return false;
+        }
+    })();
+    const pending = initializationPromise;
+    pending.finally(() => {
+        if (initializationPromise === pending) initializationPromise = null;
     });
-    streamRef = stream;
-    video.srcObject = stream;
-    await new Promise((resolve) => { video.onloadedmetadata = resolve; });
-    await video.play();
-    video.style.display = "block";
-    canvas.style.display = "block";
-    resizeCanvas();
+    return pending;
+}
 
-    await setupDetector();
-    
+function beginDetectionIfReady() {
+    if (!startRequested || !ready || running) return;
     running = true;
-    if (type === "Squat") {
-        cfg = getExeCfg(1);
-    } else if (type === "Bend") {
-        cfg = getExeCfg(2);
-    } else if (type === "Lunge") {
-        cfg = getExeCfg(3);
-    } else if (type === "Child") {
-        cfg = getExeCfg(4);
-    } else if (type === "Circle") {
-        cfg = getExeCfg(5);
-    } else if (type === "Butterfly") {
-        cfg = getExeCfg(6);
-    } else if (type === "Cobra") {
-        cfg = getExeCfg(7);
-    } else if (type === "Raise") {
-        cfg = getExeCfg(8);
-    } else if (type === "Curl") {
-        cfg = getExeCfg(9);
-    } else if (type === "March") {
-        cfg = getExeCfg(10);
-    } else {
-        throw new Error(`Unknown exercise type: ${type}`);
-    }
-
-    //starts detection
+    video.classList.remove("blurred");
     detectPose();
-    } catch (error) {
-    console.error(error);
-    }
+}
+
+// May be called before loading completes (or even before startCamera).
+// The request stays queued and the preview stays blurred until ready.
+function startDetection() {
+    startRequested = true;
+    beginDetectionIfReady();
 }
 
 function stopCamera() {
+    sessionId++;
     running = false;
+    ready = false;
+    startRequested = false;
+    initializationPromise = null;
+    if (cancelMetadataWait) cancelMetadataWait();
+    video.classList.add("blurred");
 
     if (animationId) {
         cancelAnimationFrame(animationId);
@@ -342,5 +408,6 @@ function stopCamera() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 window.startCamera = startCamera;
+window.startDetection = startDetection;
 window.stopCamera = stopCamera;
-startCamera("Squat");
+
