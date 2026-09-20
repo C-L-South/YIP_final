@@ -280,6 +280,7 @@ async function detectPose() {
 function startCamera(type) {
     if (initializationPromise) return initializationPromise;
     if (ready || running) return Promise.resolve(true);
+    document.getElementById("loadingMessage").hidden = false;
     const currentSession = ++sessionId;
     video.classList.add("blurred");
     initializationPromise = (async () => {
@@ -391,6 +392,7 @@ function startDetection() {
 function startExercise() {
     if (!ready || !waitingForExercise || running) return false;
     waitingForExercise = false;
+    document.getElementById("loadingMessage").hidden = true;
     document.getElementById("similarityBox").hidden = false;
     exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
     lastGoodPoseTime = Date.now();
@@ -406,6 +408,7 @@ function startExercise() {
 }
 
 function stopCamera() {
+    document.getElementById("loadingMessage").hidden = true;
     document.getElementById("similarityBox").hidden = true;
     sessionId++;
     if (bodyVisibleTimer !== null) {
