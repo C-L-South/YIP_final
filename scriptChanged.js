@@ -35,6 +35,7 @@ let detectionRunId = 0;
 let waitingForExercise = false;
 let bodyVisibleTimer = null;
 let lastGoodPoseTime = null;
+let fullBodySeen = false;
 
 const LOGIC_DELAY_MS = 6000;
 let exerciseStartTime = null;
@@ -128,12 +129,23 @@ async function detectPose() {
         const row = hasPose ? formatPoints(poses[0]) : null;
         const requiredPoints = cfg.ang_idx.flatMap(i => angPtsIdx[i - 1]);
         
-        const allPointsVisible =
+        const exercisePointsVisible =
             hasPose &&
             requiredPoints.every(i =>
                 row[1 + 2 * i] >= 0 && row[2 + 2 * i] >= 0
             );
         
+        // Require all 17 MoveNet points once per camera session, including
+        // eyes and ears that are not part of the exercise angle mapping.
+        const fullBodyVisible = hasPose && keypoints.length === 17 &&
+            keypoints.every(kp => kp && kp.score > 0.3 &&
+                Number.isFinite(kp.x) && Number.isFinite(kp.y) &&
+                kp.x >= 0 && kp.y >= 0);
+        if (fullBodyVisible) fullBodySeen = true;
+        const allPointsVisible = fullBodySeen
+            ? exercisePointsVisible
+            : fullBodyVisible;
+
         if (allPointsVisible) {
             lastGoodPoseTime = now;
             alertSent = false;
@@ -314,6 +326,7 @@ function startCamera(type) {
             exerciseStartTime = null;
             waitingForExercise = false;
             lastGoodPoseTime = null;
+            fullBodySeen = false;
             alertSent = false;
             prevTime = null;
             dt = 0;
@@ -405,6 +418,7 @@ function startExercise() {
 }
 
 function stopCamera() {
+    fullBodySeen = false;
     document.getElementById("loadingMessage").hidden = true;
     document.getElementById("similarityBox").hidden = true;
     sessionId++;
