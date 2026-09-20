@@ -177,7 +177,7 @@ async function detectPose() {
                 if (window.AppInventor) {
                     window.AppInventor.setWebViewString("Body Visible");
                 }
-            }, 1000);
+            }, 2000);
         }
 
         const logicDelayFinished =
