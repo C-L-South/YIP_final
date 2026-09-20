@@ -357,6 +357,10 @@ function startCamera(type) {
 
 function beginDetectionIfReady() {
     if (!startRequested || !ready || running) return;
+    // Prompt on the first missing-pose frame instead of waiting after startup.
+    // Date.now() uses milliseconds; backdate by more than 2,000 seconds.
+    lastGoodPoseTime = Date.now() - 2001 * 1000;
+    alertSent = false;
     running = true;
     video.classList.remove("blurred");
     detectPose();
@@ -410,4 +414,3 @@ function stopCamera() {
 window.startCamera = startCamera;
 window.startDetection = startDetection;
 window.stopCamera = stopCamera;
-
