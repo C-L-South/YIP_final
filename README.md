@@ -17,9 +17,8 @@ or `false` if it fails or is cancelled. The camera preview stays blurred while
 preparing and while waiting for `startDetection()`. Preparation does not run pose
 inference, start the exercise countdown, or count repetitions.
 
-When the camera and MoveNet detector are ready, the page sends the existing exact
-App Inventor message `Movenet Loaded` through `setWebViewString`, once per successful
-preparation. This signal is sent even if detection has not been requested.
+Preparation completes without sending a WebViewString readiness signal. Callers can
+await the promise returned by `startCamera(type)` to check whether it succeeded.
 
 `startDetection()` can be called during preparation or before `startCamera(type)`.
 It queues the request until preparation succeeds, then removes the blur and starts
