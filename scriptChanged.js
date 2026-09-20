@@ -227,7 +227,7 @@ async function detectPose() {
         accuracyFrames++;
         const bar = document.getElementById("similarityBar");
 
-        bar.style.width = `${accuracyScore}%`;
+        bar.style.height = `${accuracyScore}%`;
 
         if (accuracyScore >= 66.67) {
             bar.style.background = "lime";
@@ -313,7 +313,7 @@ function startCamera(type) {
             alertSent = false;
             prevTime = null;
             dt = 0;
-            document.getElementById("similarityBar").style.width = "0%";
+            document.getElementById("similarityBar").style.height = "0%";
 
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
