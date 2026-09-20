@@ -5,7 +5,9 @@ The page stays idle on load. Call these functions from the host app/WebView:
 ```js
 window.startCamera("Squat"); // Prepare camera, exercise config, and MoveNet only.
 // Later, when the user is ready:
-window.startDetection();    // Begin pose detection and exercise tracking.
+window.startDetection();    // Check body visibility, then pause.
+// After receiving "Body Visible", when the user is ready:
+window.startExercise();     // Resume detection and start the six-second countdown.
 // When finished:
 window.stopCamera();
 ```
@@ -21,13 +23,22 @@ preparation. This signal is sent even if detection has not been requested.
 
 `startDetection()` can be called during preparation or before `startCamera(type)`.
 It queues the request until preparation succeeds, then removes the blur and starts
-detection. Repeated calls do not create extra detection loops. Once the required
-body points are visible, the existing `Detection Starting` signal and six-second
-exercise countdown run as before.
+the body visibility check. Repeated calls do not create extra detection loops.
+The first frame with all required body points visible sends `Body Visible` and
+pauses pose inference. No countdown, scoring, repetition counting, or visibility
+warnings run while paused. The camera preview remains live and the model stays
+loaded. Calling `startDetection()` again does not bypass this pause.
+
+Call `startExercise()` after `Body Visible` to resume pose inference, send
+`Detection Starting`, and begin a fresh six-second countdown. Scoring and counting
+begin only after those six seconds have elapsed. The first-visible-body pause
+happens only once per session. `startExercise()` returns `true` when it starts;
+early calls (before the pause), repeated calls, and calls after `stopCamera()`
+return `false` without starting or queuing anything.
 
 `stopCamera()` cancels queued starts and loading sessions, stops camera tracks,
 hides the preview, and sends the existing accuracy summary. A subsequent session
-requires another `startCamera(type)` and `startDetection()` call. The loaded model
+requires another `startCamera(type)`, `startDetection()`, and then `startExercise()` call. The loaded model
 can be reused. Stop the current session before choosing another exercise.
 
 Supported exercise types: `Squat`, `Bend`, `Lunge`, `Child`, `Circle`, `Butterfly`,
@@ -37,5 +48,5 @@ Supported exercise types: `Squat`, `Bend`, `Lunge`, `Child`, `Circle`, `Butterfl
 
 Run `node --test startup.test.cjs`. These tests mock the browser, camera, and model
 to check startup ordering, readiness signals, blur, duplicate calls, cancellation,
-and loading failure. Camera permission and real MoveNet inference still require
+loading failure, first-visible-body pause, explicit resume, and countdown timing. Camera permission and real MoveNet inference still require
 a browser/device check.
