@@ -31,6 +31,7 @@ let detector = null;
 let animationId = null;
 let streamRef = null;
 let running = false;
+let waitingForExercise = false;
 let lastGoodPoseTime = null;
 
 const LOGIC_DELAY_MS = 6000;
@@ -146,17 +147,15 @@ async function detectPose() {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
-        // starting countdown
+        // The first visible body completes positioning, but does not start exercise.
         if (allPointsVisible && exerciseStartTime === null) {
-            // Start missing-pose timer from when detection starts
-            lastGoodPoseTime = now;
-            alertSent = false;
-        
+            running = false;
+            waitingForExercise = true;
+            animationId = null;
             if (window.AppInventor) {
-                window.AppInventor.setWebViewString("Detection Starting");
+                window.AppInventor.setWebViewString("Body Visible");
             }
-        
-            exerciseStartTime = now + LOGIC_DELAY_MS;
+            return;
         }
         
         //drawing logic
@@ -299,6 +298,7 @@ function startCamera(type) {
             totalAccuracy = 0;
             accuracyFrames = 0;
             exerciseStartTime = null;
+            waitingForExercise = false;
             lastGoodPoseTime = null;
             alertSent = false;
             prevTime = null;
@@ -356,7 +356,7 @@ function startCamera(type) {
 }
 
 function beginDetectionIfReady() {
-    if (!startRequested || !ready || running) return;
+    if (!startRequested || !ready || running || waitingForExercise) return;
     // Prompt on the first missing-pose frame instead of waiting after startup.
     // Date.now() uses milliseconds; backdate by more than 2,000 seconds.
     lastGoodPoseTime = Date.now() - 2001 * 1000;
@@ -373,9 +373,29 @@ function startDetection() {
     beginDetectionIfReady();
 }
 
+// Only an explicit call after "Body Visible" can start the exercise countdown.
+// Early or repeated calls are ignored and return false.
+function startExercise() {
+    if (!ready || !waitingForExercise || running) return false;
+    waitingForExercise = false;
+    exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
+    lastGoodPoseTime = Date.now();
+    alertSent = false;
+    prevTime = null;
+    dt = 0;
+    running = true;
+    if (window.AppInventor) {
+        window.AppInventor.setWebViewString("Detection Starting");
+    }
+    detectPose();
+    return true;
+}
+
 function stopCamera() {
     sessionId++;
     running = false;
+    waitingForExercise = false;
+    exerciseStartTime = null;
     ready = false;
     startRequested = false;
     initializationPromise = null;
@@ -413,4 +433,5 @@ function stopCamera() {
 }
 window.startCamera = startCamera;
 window.startDetection = startDetection;
+window.startExercise = startExercise;
 window.stopCamera = stopCamera;
