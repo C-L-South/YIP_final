@@ -388,6 +388,7 @@ function startDetection() {
 function startExercise() {
     if (!ready || !waitingForExercise || running) return false;
     waitingForExercise = false;
+    document.getElementById("similarityBox").hidden = false;
     exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
     lastGoodPoseTime = Date.now();
     alertSent = false;
@@ -402,6 +403,7 @@ function startExercise() {
 }
 
 function stopCamera() {
+    document.getElementById("similarityBox").hidden = true;
     sessionId++;
     if (bodyVisibleTimer !== null) {
         clearTimeout(bodyVisibleTimer);
