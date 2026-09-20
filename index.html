@@ -50,6 +50,21 @@
     white-space: pre-wrap;
     word-break: break-word;
     }
+    #loadingMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      padding: 14px 22px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font: 600 24px system-ui, sans-serif;
+      text-align: center;
+      pointer-events: none;
+    }
+
     #similarityBox {
       position: absolute;
       bottom: 20px;
@@ -107,6 +122,7 @@
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
     <pre id="output"></pre>
+    <div id="loadingMessage" role="status" aria-live="polite">Loading…</div>
     <div id="similarityBox" hidden>
       <div class="marker marker33"></div>
       <div class="marker marker66"></div>
