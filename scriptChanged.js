@@ -32,6 +32,7 @@ let animationId = null;
 let streamRef = null;
 let running = false;
 let waitingForExercise = false;
+let bodyVisibleTimer = null;
 let lastGoodPoseTime = null;
 
 const LOGIC_DELAY_MS = 6000;
@@ -147,17 +148,6 @@ async function detectPose() {
             animationId = requestAnimationFrame(detectPose);
             return;
         }
-        // The first visible body completes positioning, but does not start exercise.
-        if (allPointsVisible && exerciseStartTime === null) {
-            running = false;
-            waitingForExercise = true;
-            animationId = null;
-            if (window.AppInventor) {
-                window.AppInventor.setWebViewString("Body Visible");
-            }
-            return;
-        }
-        
         //drawing logic
         const scaleX = canvas.width / video.videoWidth;
         const scaleY = canvas.height / video.videoHeight;
@@ -166,6 +156,22 @@ async function detectPose() {
         const offsetY = (canvas.height - video.videoHeight * scale) / 2;
         drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor);
         drawKeypoints(keypoints, scale, offsetX, offsetY, warningColor);
+
+        // Leave the first visible pose drawn in green for one second before
+        // notifying the host. Inference pauses; only startExercise can resume it.
+        if (allPointsVisible && exerciseStartTime === null) {
+            running = false;
+            animationId = null;
+            bodyVisibleTimer = setTimeout(() => {
+                if (currentSession !== sessionId) return;
+                bodyVisibleTimer = null;
+                waitingForExercise = true;
+                if (window.AppInventor) {
+                    window.AppInventor.setWebViewString("Body Visible");
+                }
+            }, 1000);
+            return;
+        }
 
         const logicDelayFinished =
             exerciseStartTime !== null &&
@@ -356,7 +362,7 @@ function startCamera(type) {
 }
 
 function beginDetectionIfReady() {
-    if (!startRequested || !ready || running || waitingForExercise) return;
+    if (!startRequested || !ready || running || waitingForExercise || bodyVisibleTimer !== null) return;
     // Prompt on the first missing-pose frame instead of waiting after startup.
     // Date.now() uses milliseconds; backdate by more than 2,000 seconds.
     lastGoodPoseTime = Date.now() - 2001 * 1000;
@@ -393,6 +399,10 @@ function startExercise() {
 
 function stopCamera() {
     sessionId++;
+    if (bodyVisibleTimer !== null) {
+        clearTimeout(bodyVisibleTimer);
+        bodyVisibleTimer = null;
+    }
     running = false;
     waitingForExercise = false;
     exerciseStartTime = null;
