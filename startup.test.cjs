@@ -12,6 +12,8 @@ const deferred = () => {
 };
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
+const fullPose = () => Array.from({ length: 17 }, () => ({ x: 1, y: 1, score: 1 }));
+
 function harness() {
     const model = deferred();
     const camera = deferred();
@@ -207,7 +209,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     await prepared;
     h.window.startDetection();
     assert.equal(h.window.startExercise(), false);
-    h.inference.resolve([{ keypoints: [{ x: 1, y: 1, score: 1 }] }]);
+    h.inference.resolve([{ keypoints: fullPose() }]);
     await flush();
     assert(h.fills.includes('#00ff8a'));
     assert.equal(h.loadingMessage.hidden, true);
@@ -218,7 +220,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     h.advance(500);
     await h.nextFrame();
     assert.equal(h.calls.inference, 2);
-    assert.equal(h.fills.filter(c => c === '#00ff8a').length, 2);
+    assert.equal(h.fills.filter(c => c === '#00ff8a').length, 34);
     assert.equal(h.signals.filter(s => s === 'playSound').length, 1);
     h.advance(1499);
     assert.deepEqual(h.signals, ['playSound']);
@@ -254,11 +256,11 @@ test('partial body visibility does not pause; stopping a paused session prevents
     h.model.resolve(h.detector);
     await prepared;
     h.window.startDetection();
-    h.inference.resolve([{ keypoints: [], visible: false }]);
+    h.inference.resolve([{ keypoints: fullPose(), visible: false }]);
     await flush();
     assert(!h.signals.includes('Body Visible'));
     assert.equal(h.window.startExercise(), false);
-    h.detector.estimatePoses = async () => [{ keypoints: [] }];
+    h.detector.estimatePoses = async () => [{ keypoints: fullPose() }];
     await h.nextFrame();
     h.advance(2000);
     assert(h.signals.includes('Body Visible'));
@@ -277,7 +279,7 @@ test('stop cancels the delayed Body Visible signal', async () => {
     h.model.resolve(h.detector);
     await prepared;
     h.window.startDetection();
-    h.inference.resolve([{ keypoints: [] }]);
+    h.inference.resolve([{ keypoints: fullPose() }]);
     await flush();
     h.window.stopCamera();
     h.advance(2000);
@@ -292,18 +294,64 @@ test('an inference finishing after the signal cannot add a second resumed loop',
     h.model.resolve(h.detector);
     await prepared;
     h.window.startDetection();
-    h.inference.resolve([{ keypoints: [] }]);
+    h.inference.resolve([{ keypoints: fullPose() }]);
     await flush();
     const oldFrame = deferred();
     h.detector.estimatePoses = () => oldFrame.promise;
     const pendingFrame = h.nextFrame();
     h.advance(2000);
-    h.detector.estimatePoses = async () => [{ keypoints: [] }];
+    h.detector.estimatePoses = async () => [{ keypoints: fullPose() }];
     assert.equal(h.window.startExercise(), true);
     assert.equal(h.loadingMessage.hidden, true);
     await flush();
     assert.equal(h.pendingFrames(), 1);
-    oldFrame.resolve([{ keypoints: [] }]);
+    oldFrame.resolve([{ keypoints: fullPose() }]);
     await pendingFrame;
     assert.equal(h.pendingFrames(), 1);
+});
+
+test('all 17 points are required once; exercise points govern visibility afterward and reset each session', async () => {
+    const h = harness();
+    const warning = 'Please move your body so it is visible in the camera.';
+    const prepared = h.window.startCamera('Squat');
+    h.camera.resolve(h.stream);
+    h.model.resolve(h.detector);
+    await prepared;
+    h.window.startDetection();
+    const partial = fullPose();
+    partial[1].score = 0.3; // An eye, outside the exercise point mapping.
+    h.inference.resolve([{ keypoints: partial }]);
+    await flush();
+    assert(!h.signals.includes('playSound'));
+    assert(h.signals.includes(warning));
+    h.detector.estimatePoses = async () => [{ keypoints: fullPose().slice(0, 16) }];
+    await h.nextFrame();
+    assert(!h.signals.includes('playSound'));
+    h.detector.estimatePoses = async () => [{ keypoints: fullPose() }];
+    await h.nextFrame();
+    assert.equal(h.signals.filter(s => s === 'playSound').length, 1);
+    h.detector.estimatePoses = async () => [{ keypoints: partial }];
+    h.advance(600);
+    await h.nextFrame();
+    assert.equal(h.fills.at(-1), '#00ff8a');
+    h.advance(1400);
+    assert(h.signals.includes('Body Visible'));
+    assert.equal(h.window.startExercise(), true);
+    await flush();
+    h.advance(2500);
+    await h.nextFrame();
+    assert.equal(h.fills.at(-1), '#00ff8a');
+    assert.equal(h.signals.filter(s => s === warning).length, 1);
+    h.detector.estimatePoses = async () => [{ keypoints: partial, visible: false }];
+    h.advance(2100);
+    await h.nextFrame();
+    assert.equal(h.fills.at(-1), 'orange');
+    assert.equal(h.signals.filter(s => s === warning).length, 2);
+    h.window.stopCamera();
+    await h.window.startCamera('Squat');
+    h.detector.estimatePoses = async () => [{ keypoints: partial }];
+    h.window.startDetection();
+    await flush();
+    assert.equal(h.signals.filter(s => s === 'playSound').length, 1);
+    assert.equal(h.window.startExercise(), false);
 });
