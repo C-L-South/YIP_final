@@ -349,9 +349,6 @@ function startCamera(type) {
             if (currentSession !== sessionId) return false;
 
             ready = true;
-            if (window.AppInventor) {
-                window.AppInventor.setWebViewString("Movenet Loaded");
-            }
             beginDetectionIfReady();
             return true;
         } catch (error) {
