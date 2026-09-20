@@ -75,7 +75,7 @@ function harness() {
     };
 }
 
-test('page load is idle; preparation signals readiness without running', async () => {
+test('page load is idle; preparation completes without emitting a readiness signal or running', async () => {
     const h = harness();
     assert.equal(h.calls.camera, 0);
     const prepared = h.window.startCamera('Squat');
@@ -86,7 +86,7 @@ test('page load is idle; preparation signals readiness without running', async (
     assert.deepEqual(h.signals, []);
     h.model.resolve(h.detector);
     assert.equal(await prepared, true);
-    assert.deepEqual(h.signals, ['Movenet Loaded']);
+    assert.deepEqual(h.signals, []);
     assert.equal(h.calls.inference, 0);
     assert(h.classes.has('blurred'));
     h.window.startDetection();
@@ -111,7 +111,7 @@ test('early detection queues until both camera and model are ready; repeated sta
     await prepared;
     assert.equal(h.calls.model, 1);
     assert.equal(h.calls.inference, 1);
-    assert.deepEqual(h.signals, ['Movenet Loaded']);
+    assert.deepEqual(h.signals, []);
     assert(!h.classes.has('blurred'));
 });
 
@@ -186,7 +186,7 @@ test('new detection immediately warns when the first frame has no visible pose',
     h.window.startDetection();
     h.inference.resolve([]);
     await flush();
-    assert.deepEqual(h.signals, ['Movenet Loaded', warning]);
+    assert.deepEqual(h.signals, [warning]);
     h.window.startDetection();
     await flush();
     assert.equal(h.signals.filter(signal => signal === warning).length, 1);
@@ -211,7 +211,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     await flush();
     assert(h.fills.includes('#00ff8a'));
     assert.equal(h.loadingMessage.hidden, true);
-    assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound']);
+    assert.deepEqual(h.signals, ['playSound']);
     assert.equal(h.window.startExercise(), false);
     h.window.startDetection();
     assert.equal(h.calls.inference, 1);
@@ -221,9 +221,9 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     assert.equal(h.fills.filter(c => c === '#00ff8a').length, 2);
     assert.equal(h.signals.filter(s => s === 'playSound').length, 1);
     h.advance(1499);
-    assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound']);
+    assert.deepEqual(h.signals, ['playSound']);
     h.advance(1);
-    assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound', 'Body Visible']);
+    assert.deepEqual(h.signals, ['playSound', 'Body Visible']);
     assert.equal(h.pendingFrames(), 0);
     assert.equal(h.calls.reps, 0);
     h.advance(60000);
