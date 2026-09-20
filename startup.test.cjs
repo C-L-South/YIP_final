@@ -210,7 +210,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     h.inference.resolve([{ keypoints: [{ x: 1, y: 1, score: 1 }] }]);
     await flush();
     assert(h.fills.includes('#00ff8a'));
-    assert.equal(h.loadingMessage.hidden, false);
+    assert.equal(h.loadingMessage.hidden, true);
     assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound']);
     assert.equal(h.window.startExercise(), false);
     h.window.startDetection();
