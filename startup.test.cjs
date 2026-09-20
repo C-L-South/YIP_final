@@ -20,13 +20,16 @@ function harness() {
     const classes = new Set();
     const calls = { camera: 0, model: 0, inference: 0, stopped: 0, frames: 0, reps: 0 };
     const frames = new Map();
+    const timers = new Map();
+    let timerId = 0;
+    const fills = [];
     let now = 100000;
     const stream = { getTracks: () => [{ stop: () => calls.stopped++ }] };
     const video = {
         classList: { add: c => classes.add(c), remove: c => classes.delete(c) },
         style: {}, readyState: 1, play: async () => {}, srcObject: null
     };
-    const canvas = { style: {}, getContext: () => ({ clearRect() {}, beginPath() {}, stroke() {} }) };
+    const canvas = { style: {}, getContext: () => ({ clearRect() {}, beginPath() {}, stroke() {}, arc() {}, fill() { fills.push(this.fillStyle); } }) };
     const bar = { style: {} };
     const window = {
         innerWidth: 640, innerHeight: 480, addEventListener() {},
@@ -37,6 +40,8 @@ function harness() {
         navigator: { mediaDevices: { getUserMedia: () => { calls.camera++; return camera.promise; } } },
         tf: { ready: async () => {} },
         Date: { now: () => now },
+        setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, at: now + delay }); return id; },
+        clearTimeout: id => timers.delete(id),
         poseDetection: {
             SupportedModels: { MoveNet: 'MoveNet' },
             movenet: { modelType: { SINGLEPOSE_THUNDER: 'thunder' } },
@@ -52,8 +57,13 @@ function harness() {
         cancelAnimationFrame: id => frames.delete(id), console: { error() {} }
     });
     const detector = { estimatePoses: () => { calls.inference++; return inference.promise; } };
-    return { window, calls, classes, signals, camera, model, inference, stream, detector, video,
-        advance: ms => { now += ms; },
+    return { window, calls, classes, signals, camera, model, inference, stream, detector, video, fills,
+        advance: ms => {
+            now += ms;
+            for (const [id, timer] of timers) {
+                if (timer.at <= now) { timers.delete(id); timer.callback(); }
+            }
+        },
         nextFrame: async () => {
             const entry = frames.entries().next().value;
             assert(entry, 'expected a scheduled frame');
@@ -195,8 +205,16 @@ test('first visible body pauses inference until startExercise; countdown starts 
     await prepared;
     h.window.startDetection();
     assert.equal(h.window.startExercise(), false);
-    h.inference.resolve([{ keypoints: [] }]);
+    h.inference.resolve([{ keypoints: [{ x: 1, y: 1, score: 1 }] }]);
     await flush();
+    assert(h.fills.includes('#00ff8a'));
+    assert.deepEqual(h.signals, ['Movenet Loaded']);
+    assert.equal(h.window.startExercise(), false);
+    h.window.startDetection();
+    assert.equal(h.calls.inference, 1);
+    h.advance(999);
+    assert.deepEqual(h.signals, ['Movenet Loaded']);
+    h.advance(1);
     assert.deepEqual(h.signals, ['Movenet Loaded', 'Body Visible']);
     assert.equal(h.calls.frames, 0);
     assert.equal(h.calls.reps, 0);
@@ -233,10 +251,27 @@ test('partial body visibility does not pause; stopping a paused session prevents
     assert.equal(h.window.startExercise(), false);
     h.detector.estimatePoses = async () => [{ keypoints: [] }];
     await h.nextFrame();
+    h.advance(1000);
     assert(h.signals.includes('Body Visible'));
     h.window.stopCamera();
     assert.equal(h.window.startExercise(), false);
     await h.window.startCamera('Squat');
     assert.equal(h.window.startExercise(), false);
     assert(!h.signals.includes('Detection Starting'));
+});
+
+
+test('stop cancels the delayed Body Visible signal', async () => {
+    const h = harness();
+    const prepared = h.window.startCamera('Squat');
+    h.camera.resolve(h.stream);
+    h.model.resolve(h.detector);
+    await prepared;
+    h.window.startDetection();
+    h.inference.resolve([{ keypoints: [] }]);
+    await flush();
+    h.window.stopCamera();
+    h.advance(1000);
+    assert(!h.signals.includes('Body Visible'));
+    assert.equal(h.window.startExercise(), false);
 });
