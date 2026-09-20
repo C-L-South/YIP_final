@@ -18,13 +18,15 @@ function harness() {
     const inference = deferred();
     const signals = [];
     const classes = new Set();
-    const calls = { camera: 0, model: 0, inference: 0, stopped: 0, frames: 0 };
+    const calls = { camera: 0, model: 0, inference: 0, stopped: 0, frames: 0, reps: 0 };
+    const frames = new Map();
+    let now = 100000;
     const stream = { getTracks: () => [{ stop: () => calls.stopped++ }] };
     const video = {
         classList: { add: c => classes.add(c), remove: c => classes.delete(c) },
         style: {}, readyState: 1, play: async () => {}, srcObject: null
     };
-    const canvas = { style: {}, getContext: () => ({ clearRect() {} }) };
+    const canvas = { style: {}, getContext: () => ({ clearRect() {}, beginPath() {}, stroke() {} }) };
     const bar = { style: {} };
     const window = {
         innerWidth: 640, innerHeight: 480, addEventListener() {},
@@ -34,17 +36,31 @@ function harness() {
         window, document: { getElementById: id => ({ video, canvas, similarityBar: bar }[id]) },
         navigator: { mediaDevices: { getUserMedia: () => { calls.camera++; return camera.promise; } } },
         tf: { ready: async () => {} },
+        Date: { now: () => now },
         poseDetection: {
             SupportedModels: { MoveNet: 'MoveNet' },
             movenet: { modelType: { SINGLEPOSE_THUNDER: 'thunder' } },
+            util: { getAdjacentPairs: () => [] },
             createDetector: () => { calls.model++; return model.promise; }
         },
-        getExeCfg: id => ({ id, ang_idx: [1, 2] }),
-        requestAnimationFrame: () => ++calls.frames,
-        cancelAnimationFrame() {}, console: { error() {} }
+        getExeCfg: id => ({ id, ang_idx: [1, 2], template: [1, 1, 1, 1] }),
+        formatPoints: pose => [now, ...Array(26).fill(pose.visible === false ? -1 : 1)],
+        getAllAngles: () => ({ angX: [1, 1], angSigma: [1, 1], ang: [1, 1] }),
+        similarityToScore: () => 1,
+        countExerciseRep2: () => ({ count: ++calls.reps, fastSlowWarning: '' }),
+        requestAnimationFrame: callback => { const id = ++calls.frames; frames.set(id, callback); return id; },
+        cancelAnimationFrame: id => frames.delete(id), console: { error() {} }
     });
     const detector = { estimatePoses: () => { calls.inference++; return inference.promise; } };
-    return { window, calls, classes, signals, camera, model, inference, stream, detector, video };
+    return { window, calls, classes, signals, camera, model, inference, stream, detector, video,
+        advance: ms => { now += ms; },
+        nextFrame: async () => {
+            const entry = frames.entries().next().value;
+            assert(entry, 'expected a scheduled frame');
+            frames.delete(entry[0]);
+            await entry[1]();
+        }
+    };
 }
 
 test('page load is idle; preparation signals readiness without running', async () => {
@@ -168,4 +184,59 @@ test('new detection immediately warns when the first frame has no visible pose',
     h.window.startDetection();
     await flush();
     assert.equal(h.signals.filter(signal => signal === warning).length, 2);
+});
+
+test('first visible body pauses inference until startExercise; countdown starts at that call', async () => {
+    const h = harness();
+    assert.equal(h.window.startExercise(), false);
+    const prepared = h.window.startCamera('Squat');
+    h.camera.resolve(h.stream);
+    h.model.resolve(h.detector);
+    await prepared;
+    h.window.startDetection();
+    assert.equal(h.window.startExercise(), false);
+    h.inference.resolve([{ keypoints: [] }]);
+    await flush();
+    assert.deepEqual(h.signals, ['Movenet Loaded', 'Body Visible']);
+    assert.equal(h.calls.frames, 0);
+    assert.equal(h.calls.reps, 0);
+    h.advance(60000);
+    h.window.startDetection();
+    await flush();
+    assert.equal(h.calls.inference, 1);
+    assert.equal(h.calls.stopped, 0);
+    assert.equal(h.window.startExercise(), true);
+    assert.equal(h.window.startExercise(), false);
+    await flush();
+    assert.equal(h.calls.inference, 2);
+    assert.equal(h.calls.reps, 0);
+    assert.equal(h.signals.filter(s => s === 'Detection Starting').length, 1);
+    h.advance(5999);
+    await h.nextFrame();
+    assert.equal(h.calls.reps, 0);
+    h.advance(1);
+    await h.nextFrame();
+    assert.equal(h.calls.reps, 1);
+    assert.equal(h.signals.filter(s => s === 'Body Visible').length, 1);
+});
+
+test('partial body visibility does not pause; stopping a paused session prevents resume', async () => {
+    const h = harness();
+    const prepared = h.window.startCamera('Squat');
+    h.camera.resolve(h.stream);
+    h.model.resolve(h.detector);
+    await prepared;
+    h.window.startDetection();
+    h.inference.resolve([{ keypoints: [], visible: false }]);
+    await flush();
+    assert(!h.signals.includes('Body Visible'));
+    assert.equal(h.window.startExercise(), false);
+    h.detector.estimatePoses = async () => [{ keypoints: [] }];
+    await h.nextFrame();
+    assert(h.signals.includes('Body Visible'));
+    h.window.stopCamera();
+    assert.equal(h.window.startExercise(), false);
+    await h.window.startCamera('Squat');
+    assert.equal(h.window.startExercise(), false);
+    assert(!h.signals.includes('Detection Starting'));
 });
