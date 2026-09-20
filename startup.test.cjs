@@ -59,7 +59,7 @@ function harness() {
         cancelAnimationFrame: id => frames.delete(id), console: { error() {} }
     });
     const detector = { estimatePoses: () => { calls.inference++; return inference.promise; } };
-    return { window, calls, classes, signals, camera, model, inference, stream, detector, video, fills, pendingFrames: () => frames.size,
+    return { window, calls, classes, signals, camera, model, inference, stream, detector, video, fills, loadingMessage, pendingFrames: () => frames.size,
         advance: ms => {
             now += ms;
             for (const [id, timer] of timers) {
@@ -210,6 +210,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     h.inference.resolve([{ keypoints: [{ x: 1, y: 1, score: 1 }] }]);
     await flush();
     assert(h.fills.includes('#00ff8a'));
+    assert.equal(h.loadingMessage.hidden, false);
     assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound']);
     assert.equal(h.window.startExercise(), false);
     h.window.startDetection();
@@ -219,7 +220,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     assert.equal(h.calls.inference, 2);
     assert.equal(h.fills.filter(c => c === '#00ff8a').length, 2);
     assert.equal(h.signals.filter(s => s === 'playSound').length, 1);
-    h.advance(499);
+    h.advance(1499);
     assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound']);
     h.advance(1);
     assert.deepEqual(h.signals, ['Movenet Loaded', 'playSound', 'Body Visible']);
@@ -231,6 +232,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     assert.equal(h.calls.inference, 2);
     assert.equal(h.calls.stopped, 0);
     assert.equal(h.window.startExercise(), true);
+    assert.equal(h.loadingMessage.hidden, true);
     assert.equal(h.window.startExercise(), false);
     await flush();
     assert.equal(h.calls.inference, 3);
@@ -258,7 +260,7 @@ test('partial body visibility does not pause; stopping a paused session prevents
     assert.equal(h.window.startExercise(), false);
     h.detector.estimatePoses = async () => [{ keypoints: [] }];
     await h.nextFrame();
-    h.advance(1000);
+    h.advance(2000);
     assert(h.signals.includes('Body Visible'));
     h.window.stopCamera();
     assert.equal(h.window.startExercise(), false);
@@ -278,7 +280,7 @@ test('stop cancels the delayed Body Visible signal', async () => {
     h.inference.resolve([{ keypoints: [] }]);
     await flush();
     h.window.stopCamera();
-    h.advance(1000);
+    h.advance(2000);
     assert(!h.signals.includes('Body Visible'));
     assert.equal(h.window.startExercise(), false);
 });
@@ -295,9 +297,10 @@ test('an inference finishing after the signal cannot add a second resumed loop',
     const oldFrame = deferred();
     h.detector.estimatePoses = () => oldFrame.promise;
     const pendingFrame = h.nextFrame();
-    h.advance(1000);
+    h.advance(2000);
     h.detector.estimatePoses = async () => [{ keypoints: [] }];
     assert.equal(h.window.startExercise(), true);
+    assert.equal(h.loadingMessage.hidden, true);
     await flush();
     assert.equal(h.pendingFrames(), 1);
     oldFrame.resolve([{ keypoints: [] }]);
