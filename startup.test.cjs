@@ -146,3 +146,26 @@ test('a stopped inference cannot emit exercise signals or schedule another frame
     assert.deepEqual(h.signals, signals);
     assert.equal(h.calls.frames, 0);
 });
+
+test('new detection immediately warns when the first frame has no visible pose', async () => {
+    const h = harness();
+    const warning = 'Please move your body so it is visible in the camera.';
+    const prepared = h.window.startCamera('Squat');
+    h.camera.resolve(h.stream);
+    h.model.resolve(h.detector);
+    await prepared;
+    assert(!h.signals.includes(warning));
+    h.window.startDetection();
+    h.inference.resolve([]);
+    await flush();
+    assert.deepEqual(h.signals, ['Movenet Loaded', warning]);
+    h.window.startDetection();
+    await flush();
+    assert.equal(h.signals.filter(signal => signal === warning).length, 1);
+
+    h.window.stopCamera();
+    await h.window.startCamera('Squat');
+    h.window.startDetection();
+    await flush();
+    assert.equal(h.signals.filter(signal => signal === warning).length, 2);
+});
