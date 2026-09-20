@@ -31,6 +31,7 @@ let detector = null;
 let animationId = null;
 let streamRef = null;
 let running = false;
+let detectionRunId = 0;
 let waitingForExercise = false;
 let bodyVisibleTimer = null;
 let lastGoodPoseTime = null;
@@ -109,10 +110,11 @@ async function setupDetector() {
 async function detectPose() {
     if (!running) return;
     const currentSession = sessionId;
+    const currentRun = detectionRunId;
     try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const poses = await detector.estimatePoses(video);
-        if (!running || currentSession !== sessionId) return;
+        if (!running || currentSession !== sessionId || currentRun !== detectionRunId) return;
         const hasPose = poses.length > 0;
         const keypoints = hasPose ? poses[0].keypoints : [];
       
@@ -157,20 +159,22 @@ async function detectPose() {
         drawSkeleton(keypoints, scale, offsetX, offsetY, warningColor);
         drawKeypoints(keypoints, scale, offsetX, offsetY, warningColor);
 
-        // Leave the first visible pose drawn in green for one second before
-        // notifying the host. Inference pauses; only startExercise can resume it.
-        if (allPointsVisible && exerciseStartTime === null) {
-            running = false;
-            animationId = null;
+        // Keep updating the pose for one second before signaling and pausing.
+        if (allPointsVisible && exerciseStartTime === null && bodyVisibleTimer === null) {
             bodyVisibleTimer = setTimeout(() => {
                 if (currentSession !== sessionId) return;
                 bodyVisibleTimer = null;
+                running = false;
+                detectionRunId++;
+                if (animationId !== null) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
                 waitingForExercise = true;
                 if (window.AppInventor) {
                     window.AppInventor.setWebViewString("Body Visible");
                 }
             }, 1000);
-            return;
         }
 
         const logicDelayFinished =
@@ -263,7 +267,7 @@ async function detectPose() {
         prevTime = timeStamp;
     animationId = requestAnimationFrame(detectPose);
     } catch (error) {
-    if (currentSession !== sessionId) return;
+    if (currentSession !== sessionId || currentRun !== detectionRunId) return;
     console.error(error);
     stopCamera();
     }
