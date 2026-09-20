@@ -23,6 +23,7 @@ function harness() {
     const timers = new Map();
     let timerId = 0;
     const fills = [];
+    const soundEvents = [];
     let now = 100000;
     const stream = { getTracks: () => [{ stop: () => calls.stopped++ }] };
     const video = {
@@ -40,6 +41,11 @@ function harness() {
         window, document: { getElementById: id => ({ video, canvas, similarityBar: bar, similarityBox: scoreBox }[id]) },
         navigator: { mediaDevices: { getUserMedia: () => { calls.camera++; return camera.promise; } } },
         tf: { ready: async () => {} },
+        Audio: class {
+            constructor(src) { this.src = src; }
+            play() { soundEvents.push({ action: 'play', time: now }); return Promise.resolve(); }
+            pause() { soundEvents.push({ action: 'pause', time: now }); }
+        },
         Date: { now: () => now },
         setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, at: now + delay }); return id; },
         clearTimeout: id => timers.delete(id),
@@ -58,7 +64,7 @@ function harness() {
         cancelAnimationFrame: id => frames.delete(id), console: { error() {} }
     });
     const detector = { estimatePoses: () => { calls.inference++; return inference.promise; } };
-    return { window, calls, classes, signals, camera, model, inference, stream, detector, video, fills, pendingFrames: () => frames.size,
+    return { window, calls, classes, signals, camera, model, inference, stream, detector, video, fills, soundEvents, pendingFrames: () => frames.size,
         advance: ms => {
             now += ms;
             for (const [id, timer] of timers) {
@@ -209,6 +215,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     h.inference.resolve([{ keypoints: [{ x: 1, y: 1, score: 1 }] }]);
     await flush();
     assert(h.fills.includes('#00ff8a'));
+    assert.deepEqual(h.soundEvents, [{ action: 'play', time: 100000 }]);
     assert.deepEqual(h.signals, ['Movenet Loaded']);
     assert.equal(h.window.startExercise(), false);
     h.window.startDetection();
@@ -217,6 +224,7 @@ test('pose updates during the visibility delay, then pauses until startExercise'
     await h.nextFrame();
     assert.equal(h.calls.inference, 2);
     assert.equal(h.fills.filter(c => c === '#00ff8a').length, 2);
+    assert.equal(h.soundEvents.length, 1);
     h.advance(499);
     assert.deepEqual(h.signals, ['Movenet Loaded']);
     h.advance(1);

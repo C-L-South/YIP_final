@@ -6,6 +6,8 @@ import { similarityToScore } from "./similarityToScore.js"
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const bodyVisibleSound = new Audio('./universfield-level-up-03-199576.mp3');
+bodyVisibleSound.preload = 'auto';
 
 //angle to points mapping
 const angPtsIdx = [
@@ -161,6 +163,11 @@ async function detectPose() {
 
         // Keep updating the pose for one second before signaling and pausing.
         if (allPointsVisible && exerciseStartTime === null && bodyVisibleTimer === null) {
+            bodyVisibleSound.currentTime = 0;
+            bodyVisibleSound.play().catch(error => {
+                // A blocked/unavailable sound must not prevent the visibility signal.
+                console.warn('Unable to play body visibility sound:', error);
+            });
             bodyVisibleTimer = setTimeout(() => {
                 if (currentSession !== sessionId) return;
                 bodyVisibleTimer = null;
@@ -403,6 +410,8 @@ function startExercise() {
 }
 
 function stopCamera() {
+    bodyVisibleSound.pause();
+    bodyVisibleSound.currentTime = 0;
     document.getElementById("similarityBox").hidden = true;
     sessionId++;
     if (bodyVisibleTimer !== null) {
