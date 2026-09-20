@@ -280,7 +280,7 @@ async function detectPose() {
 function startCamera(type) {
     if (initializationPromise) return initializationPromise;
     if (ready || running) return Promise.resolve(true);
-    document.getElementById("loadingMessage").hidden = false;
+    document.getElementById("loadingMessage").hidden = startRequested;
     const currentSession = ++sessionId;
     video.classList.add("blurred");
     initializationPromise = (async () => {
@@ -383,6 +383,7 @@ function beginDetectionIfReady() {
 // May be called before loading completes (or even before startCamera).
 // The request stays queued and the preview stays blurred until ready.
 function startDetection() {
+    document.getElementById("loadingMessage").hidden = true;
     startRequested = true;
     beginDetectionIfReady();
 }
@@ -392,7 +393,6 @@ function startDetection() {
 function startExercise() {
     if (!ready || !waitingForExercise || running) return false;
     waitingForExercise = false;
-    document.getElementById("loadingMessage").hidden = true;
     document.getElementById("similarityBox").hidden = false;
     exerciseStartTime = Date.now() + LOGIC_DELAY_MS;
     lastGoodPoseTime = Date.now();
