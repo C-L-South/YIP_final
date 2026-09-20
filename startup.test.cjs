@@ -31,12 +31,13 @@ function harness() {
     };
     const canvas = { style: {}, getContext: () => ({ clearRect() {}, beginPath() {}, stroke() {}, arc() {}, fill() { fills.push(this.fillStyle); } }) };
     const bar = { style: {} };
+    const scoreBox = { hidden: true };
     const window = {
         innerWidth: 640, innerHeight: 480, addEventListener() {},
         AppInventor: { setWebViewString: text => signals.push(text) }
     };
     vm.runInNewContext(source, {
-        window, document: { getElementById: id => ({ video, canvas, similarityBar: bar }[id]) },
+        window, document: { getElementById: id => ({ video, canvas, similarityBar: bar, similarityBox: scoreBox }[id]) },
         navigator: { mediaDevices: { getUserMedia: () => { calls.camera++; return camera.promise; } } },
         tf: { ready: async () => {} },
         Date: { now: () => now },
