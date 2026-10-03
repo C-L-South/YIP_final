@@ -292,7 +292,7 @@ async function detectPose() {
 function startCamera(type) {
     if (initializationPromise) return initializationPromise;
     if (ready || running) return Promise.resolve(true);
-    document.getElementById("loadingMessage").hidden = startRequested;
+    document.getElementById("loadingMessage").hidden = false;
     const currentSession = ++sessionId;
     video.classList.add("blurred");
     initializationPromise = (async () => {
@@ -381,6 +381,7 @@ function startCamera(type) {
 
 function beginDetectionIfReady() {
     if (!startRequested || !ready || running || waitingForExercise || bodyVisibleTimer !== null) return;
+    document.getElementById("loadingMessage").hidden = true;
     // Prompt on the first missing-pose frame instead of waiting after startup.
     // Date.now() uses milliseconds; backdate by more than 2,000 seconds.
     lastGoodPoseTime = Date.now() - 2001 * 1000;
@@ -393,7 +394,6 @@ function beginDetectionIfReady() {
 // May be called before loading completes (or even before startCamera).
 // The request stays queued and the preview stays blurred until ready.
 function startDetection() {
-    document.getElementById("loadingMessage").hidden = true;
     startRequested = true;
     beginDetectionIfReady();
 }
